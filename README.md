@@ -1,4 +1,4 @@
-## Sleep Stage Auto-annotation based on polysomnographic records
+## Sleep stage auto-annotation based on polysomnographic records
 
 ## Installation
 Git clone a copy of code:
