@@ -3,7 +3,7 @@
 ## Installation
 Git clone a copy of code:
 ```
-git clone 
+git clone https://github.com/GuanLab/Sleep-Stage-Auto-annotation.git
 ```
 ## Required dependencies
 
