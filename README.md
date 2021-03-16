@@ -31,25 +31,25 @@ First download the data and put them into the folder "./data/training/". The tra
 
 Since the lengths of sleep recordings are different, we first make uniform these recordings to the same 8-million length (2^23 = 8,388,608) by padding zeros at both the beginning and the end. 
 
-Then we separate the 994 records into a training set and a test set and quantile normalize the training data.
+Then we separate the 994 records into a training set and a test set (example: ) and quantile normalize the training data.
 
 ### 3. model training
 The model we present here used 11 channels to train the model. You can adjust the number of channels you would like to use.
 
 Run the following command to train the model. Note that i is required, which specifies how many models you would like to train. You can just set it to 1. 
 ```
-python3 train.py i 
+python3 train_8m_11c.py i 
 ```
 You can use the following command if you want to keep track of the training and validation loss.
 ```
-python3 train.py i | tee -a log_i.txt
+python3 train_8m_11c.py i | tee -a log_i.txt
 ```
 
 ### 4. prediction and scoring
 
 Now you can run predictions using the following command:
 ```
-python predict.py
+python3 predict_8m_11c.py
 ```
 It will generate a file for each record called "record_name.vec", each line corresponds to the prediction for each time point in the original polysomnogram.
 
