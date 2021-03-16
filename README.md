@@ -31,10 +31,6 @@ First download the data and put them into the folder "./data/training/". The tra
 
 Since the lengths of sleep recordings are different, we first make uniform these recordings to the same 8-million length (2^23 = 8,388,608) by padding zeros at both the beginning and the end. 
 
-```
-unzip ref555.zip
-python uniform_8m.py
-```
 Then we separate the 994 records into a training set and a test set and quantile normalize the training data.
 
 ### 3. model training
