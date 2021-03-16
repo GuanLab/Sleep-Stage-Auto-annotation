@@ -31,7 +31,7 @@ First download the data and put them into the folder "./data/training/". The tra
 
 Since the lengths of sleep recordings are different, we first make uniform these recordings to the same 8-million length (2^23 = 8,388,608) by padding zeros at both the beginning and the end. 
 
-Then we separate the 994 records into a training set and a test set (example: ) and quantile normalize the training data.
+Then we separate the 994 records into a training set and a test set (80:20 partition example: whole_train_80.txt and whole_test_20.txt). After that, we quantile normalize the training data.
 
 ### 3. model training
 The model we present here used 11 channels to train the model. You can adjust the number of channels you would like to use.
