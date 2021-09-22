@@ -15,13 +15,6 @@ from keras.layers import ZeroPadding1D
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
-num_class=8
-size= 4096*128*2 #sometimes changed.. be careful this match the size in train or predict file in use
-channel=11
-batch_size=32
-ss=10
-
-
 def crossentropy_cut(y_true,y_pred):
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
@@ -31,14 +24,18 @@ def crossentropy_cut(y_true,y_pred):
     out=K.mean(out)
     return out
 
-#def categorical_crossentropy_cut(y_true,y_pred):
-#    y_true_f = K.flatten(y_true)
-#    y_pred_f = K.flatten(y_pred)
-#    y_pred_f= tf.clip_by_value(y_pred_f, 1e-7, (1. - 1e-7))
-#    mask = K.cast(K.greater_equal(y_true_f,-0.5),dtype='float32')
-#    out = -(y_true_f * K.log(y_pred_f) * mask)
-#    out=K.mean(out)
-#    return out
+def focal_loss(y_true,y_pred):
+    """ for imbalanced class: focal loss
+    """
+    alpha = 1
+    gamma = 2
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    y_pred_f= tf.clip_by_value(y_pred_f, 1e-7, (1. - 1e-7))
+    mask=K.cast(K.greater_equal(y_true_f,-0.5),dtype='float32')
+    out = alpha*(-(y_true_f * (1.0 - y_pred_f)**gamma*K.log(y_pred_f)*mask+(1.0 - y_true_f)*(y_pred_f**gamma)*K.log(1.0 - y_pred_f)*mask))
+    out=K.mean(out)
+    return out
 
 def weighted_categorical_crossentropy_cut(y_true,y_pred):
     l0=crossentropy_cut(y_true[:,:,0],y_pred[:,:,0])
@@ -47,13 +44,26 @@ def weighted_categorical_crossentropy_cut(y_true,y_pred):
     l3=crossentropy_cut(y_true[:,:,3],y_pred[:,:,3])
     l4=crossentropy_cut(y_true[:,:,4],y_pred[:,:,4])
     l5=crossentropy_cut(y_true[:,:,5],y_pred[:,:,5])
-    l6=crossentropy_cut(y_true[:,:,6],y_pred[:,:,6])
+    #l6=crossentropy_cut(y_true[:,:,6],y_pred[:,:,6])
+    l6=focal_loss(y_true[:,:,6],y_pred[:,:,6])
     l7=crossentropy_cut(y_true[:,:,7],y_pred[:,:,7])
-    out = (l0*7 + l1 + l2 + l3 + l4 + l5 + l6 + l7)/(7+7)
+    out = (l0 + l1 + l2 + l3 + l4 + l5 + l6*7 + l7)/(7+7) # set custom weights for each class
+    #out = (l0*7+l1)/8
     return out
 
-def dice_coef(y_true, y_pred):
-    y_true_f = K.flatten(y_true)
+def weighted_focal(y_true,y_pred):
+    l0=focal_loss(y_true[:,:,0],y_pred[:,:,0])
+    l1=focal_loss(y_true[:,:,1],y_pred[:,:,1])
+    l2=focal_loss(y_true[:,:,2],y_pred[:,:,2])
+    l3=focal_loss(y_true[:,:,3],y_pred[:,:,3])
+    l4=focal_loss(y_true[:,:,4],y_pred[:,:,4])
+    l5=focal_loss(y_true[:,:,5],y_pred[:,:,5])
+    #l6=crossentropy_cut(y_true[:,:,6],y_pred[:,:,6])
+    l6=crossentropy_cut(y_true[:,:,6],y_pred[:,:,6])
+    l7=crossentropy_cut(y_true[:,:,7],y_pred[:,:,7])
+    out = (l0 + l1 + l2*2 + l3 + l4 + l5 + l6*7 + l7)/(7+7+1) # set custom weights for each class
+    #out = (l0*7+l1)/8
+    return out
 
 def Conv1DTranspose(input_tensor, filters, kernel_size, strides=2, padding='same'):
     x = Lambda(lambda x: K.expand_dims(x, axis=2))(input_tensor)
@@ -62,6 +72,7 @@ def Conv1DTranspose(input_tensor, filters, kernel_size, strides=2, padding='same
     return x
 
 def dice_coef(y_true, y_pred):
+    ss=10
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     mask=K.cast(K.greater_equal(y_true_f,-0.5),dtype='float32')
@@ -72,12 +83,16 @@ def dice_coef_loss(y_true, y_pred):
     return -dice_coef(y_true, y_pred)
 
 
-def get_unet():
+def get_unet(size = 4096*128*2, channel=12, num_class=8):
+    #num_class=1
+    #size= 4096*128*2 #sometimes changed.. be careful this match the size in train or predict file in use
+    #channel=12
+
     inputs = Input((size, channel)) #4096*128
     print(inputs.shape)
 
-    conv01 = Conv1D(32, 7, activation='relu', padding='same')(inputs)
-    conv01 = Conv1D(32, 7, activation='relu', padding='same')(conv01)
+    conv01 = Conv1D(20, 7, activation='relu', padding='same')(inputs)
+    conv01 = Conv1D(20, 7, activation='relu', padding='same')(conv01)
     pool01 = MaxPooling1D(pool_size=2)(conv01) #4096*64
 
     conv0 = Conv1D(40, 7, activation='relu', padding='same')(pool01)#+8
@@ -154,25 +169,41 @@ def get_unet():
     up18 = concatenate([Conv1DTranspose(conv17,64, 2, strides=2, padding='same'), conv2], axis=2)
     conv18 = Conv1D(64, 7, activation='relu', padding='same')(up18)
     conv18 = Conv1D(64, 7, activation='relu', padding='same')(conv18) #4096*16
-    
+
     up19 = concatenate([Conv1DTranspose(conv18,48, 2, strides=2, padding='same'), conv1], axis=2)
     conv19 = Conv1D(48, 7, activation='relu', padding='same')(up19)
     conv19 = Conv1D(48, 7, activation='relu', padding='same')(conv19) #4096*32
-
+    
     up20 = concatenate([Conv1DTranspose(conv19,40, 2, strides=2, padding='same'), conv0], axis=2)
     conv20 = Conv1D(40, 7, activation='relu', padding='same')(up20)
     conv20 = Conv1D(40, 7, activation='relu', padding='same')(conv20) #4096*64
+    
+    up21 = concatenate([Conv1DTranspose(conv20,20, 2, strides=2, padding='same'), conv01], axis=2)
+    conv21 = Conv1D(40, 7, activation='relu', padding='same')(up21)
+    conv21 = Conv1D(40, 7, activation='relu', padding='same')(conv21) #4096*128
 
-    up21 = concatenate([Conv1DTranspose(conv20,32, 2, strides=2, padding='same'), conv01], axis=2)
-    conv21 = Conv1D(32, 7, activation='relu', padding='same')(up21)
-    conv21 = Conv1D(32, 7, activation='relu', padding='same')(conv21) #4096*128
+    conv21_1 = Conv1D(20, 7, activation='relu', padding='same')(up21)
+    conv21_1 = Conv1D(20, 7, activation='relu', padding='same')(conv21_1) #4096*128
 
-    conv22 = Conv1D(num_class, 1, activation='sigmoid')(conv21) # batch, size, channel
+    conv21_2 = Conv1D(20, 7, activation='relu', padding='same')(up21)
+    conv21_2 = Conv1D(20, 7, activation='relu', padding='same')(conv21_2) #4096*128
 
-    model = Model(inputs=[inputs], outputs=[conv22])
+    conv22_sleepstage =  Conv1D(6, 1, activation='softmax')(conv21)
+    conv22_arousal = Conv1D(1, 1, activation='sigmoid')(conv21_1) # batch, size, channel    
+    conv22_apnea = Conv1D(1, 1, activation='sigmoid')(conv21_2) 
+    #print(conv22.shape)
+    
+    model = Model(inputs=[inputs], outputs=[conv22_sleepstage, conv22_arousal, conv22_apnea])
 
     model.compile(optimizer=Adam(lr=1e-4,beta_1=0.9, beta_2=0.999,decay=1e-5), \
-        loss=weighted_categorical_crossentropy_cut, metrics=[dice_coef])
+        loss=[crossentropy_cut,crossentropy_cut, crossentropy_cut], \
+        loss_weights=[0.18, 0.6, 0.22], \
+        metrics = [dice_coef, dice_coef,dice_coef])
+
+        #loss={ 'conv22_sleepstage': 'categorical_crossentropy', 'conv22_arousal': 'binary_crossentropy', 'conv22_apnea': 'binary_crossentropy'}, \
+        #loss_weights={'conv22_sleepstage': 1, 'conv22_arousal': 5, 'conv22_apnea':1}, \
+        #metrics = {'conv22_sleepstage': dice_coef, 'conv22_arousal': dice_coef, 'conv22_apnea': dice_coef})
+        #loss=weighted_focal, metrics=[dice_coef])
 
     return model
 
