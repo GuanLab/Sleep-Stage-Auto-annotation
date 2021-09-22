@@ -36,18 +36,14 @@ The model we present here used 11 channels to train the model. You can adjust th
 
 Run the following command to train the model. Note that i is required, which specifies how many models you would like to train. You can just set it to 1. 
 ```
-python3 train_8m_11c.py i 
-```
-You can use the following command if you want to keep track of the training and validation loss.
-```
-python3 train_8m_11c.py i | tee -a log_i.txt
+python train.py i
 ```
 
 ### 4. prediction and scoring
 
 Now you can run predictions using the following command:
 ```
-python3 predict_8m_11c.py
+python predict.py
 ```
 It will generate a file for each record called "record_name.vec", each line corresponds to the prediction for each time point in the original polysomnogram.
 
