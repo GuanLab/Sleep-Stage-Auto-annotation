@@ -27,9 +27,19 @@ First download the data and put them into the folder "./data/training/". The tra
 
 ### 2. preprocessing
 
-Since the lengths of sleep recordings are different, we first make uniform these recordings to the same 8-million length (2^23 = 8,388,608) by padding zeros at both the beginning and the end. 
+The code used for data preprocess can be found in `./preprocess` folder. Both PhysioNet and SHHS data were preprocessed in the same fashion. while details may be different since the two datasets were stored in different formats.
+The data preprocess is carried out in following steps:
 
-Then we separate the 994 records into a training set and a test set (80:20 partition example: whole_train_80.txt and whole_test_20.txt). After that, we quantile normalize the training data.
+* 1.  split train and test sets: Then we separate the 994 records into a training set and a test set (80:20 partition example: whole_train_80.txt and whole_test_20.txt). 
+
+`python split_train_test.py`
+this will generate file ids for both training set and test set, stored in `id_train80.txt` and  `id_test20.txt` 
+
+# 2. create reference distribution for input signal. the uniformed distribution will be used in quantile normalzation.
+`python create_ref_shhs.py` : this will generate `ref555_shhs_8c.npy` and `ref555_shhs_eeg.npy` stored as numpy array.
+
+# 3. signal preprocess and quantile normalization
+`python process_shhs_signal_label.py`: this will geneate both the processed 8 channel signals and eeg signals (2 channels). Also this will generate the corresponding prediction labels. Of note, since the lengths of sleep recordings are different, we first make uniform these recordings to the same 8-million length (2^23 = 8,388,608) by padding zeros at both the beginning and the end. The labels and padding signals should be padded in the same way.
 
 ### 3. model training
 The model we present here used 11 channels to train the model. You can adjust the number of channels you would like to use.
