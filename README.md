@@ -40,7 +40,7 @@ The data preprocess is carried out in following steps:
 
 * 3. signal preprocess and quantile normalization:
 
-  run `python process_shhs_signal_label.py`: this will geneate both the processed 8 channel signals and eeg signals (2 channels). Also this will generate the corresponding prediction labels. Of note, since the lengths of sleep recordings are different, we first make uniform these recordings to the same 8-million length (2^23 = 8,388,608) by padding zeros at both the beginning and the end. The labels and signals should be padded in the same locations and avoid mismatch.
+  run `python process_shhs_signal_label.py`: this will generate both the processed 8 channel signals and eeg signals (2 channels). Also this will generate the corresponding prediction labels. Of note, since the lengths of sleep recordings are different, we first make uniform these recordings to the same 8-million length (2^23 = 8,388,608) by padding zeros at both the beginning and the end. The labels and signals should be padded in the same locations and avoid mismatch.
 
 ### 3. model training
 The model we present here used 11 channels to train the model. You can adjust the number of channels you would like to use.
